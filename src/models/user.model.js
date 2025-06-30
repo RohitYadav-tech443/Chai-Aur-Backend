@@ -3,6 +3,8 @@ import jwt from 'jsonwebtoken'
 import bcrypt from 'bcrypt'
 
 //jwt is the bearer token
+// over here we use multer in this app to upload the vedios and images
+//  multer is the type of the express thing just similar to that 
 
 const userSchema = new Schema(
     {
