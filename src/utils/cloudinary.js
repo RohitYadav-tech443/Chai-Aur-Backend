@@ -10,7 +10,7 @@ import fs from 'fs'
         api_secret:process.env.CLOUDINARY_API_SECRET // Click 'View API Keys' above to copy your API secret
     });
 
-    const uploadCloudinary =async (localFilePath) => {
+const uploadCloudinary =async (localFilePath) => {
         try {
             if(!localFilePath) return null
             // upload the file on cloudinary
@@ -19,13 +19,15 @@ import fs from 'fs'
             })
             // file has been uploaded successfully
             console.log("file is uploaded on the cloudinary".response.url)
-            return response
+            return response;
         } catch (error) {
             // there are files which are not uploaded on the seerver so we need to remove those malicius files from the pathway ...so we need the catch part to remove those errors
             fs.unlinkSync(localFilePath)
             // removes the locally saved tempororay file as the upload operation gets failed
         }
     }
+
+export default uploadCloudinary;
 
 
 
