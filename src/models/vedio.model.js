@@ -19,7 +19,7 @@ const vedioSchema= new Schema(
             type:String, 
             required:true,
         },
-        time:{
+        duration:{
             type:String, 
             required:true,
         },

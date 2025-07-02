@@ -1,27 +1,33 @@
-import express from 'express'
-import cors from 'cors'
-import cookieParser from 'cookie-parser'
-// 
-const app=express()
-
-app.use(cors({
-    origin:process.env.CORS_ORIGIN,
-    credentials:true,
-}))
-
-app.use(express.json({limit: "16kb"}))
-app.use(express.urlencoded({extended:true,limit:"16kb"}))
-app.use(express.static("public"))
-// above line is used to make the files public and available to all 
-app.use(cookieParser())
-
+import express from 'express';
+import cors from 'cors';
+import cookieParser from 'cookie-parser';
 
 // routes import
-import userRouter from './routes/user.routes.js'
-// routes declaration
-app.use("/api/v1/users",userRouter)
-// here the "/users" is the prefix
+import userRouter from './routes/user.routes.js';
 
-// http://localhost:8000/api/v1/users/register
+const app = express();
 
-export {app} 
+// CORS middleware
+app.use(cors({
+    origin: process.env.CORS_ORIGIN,
+    credentials: true,
+}));
+
+// Serve static files (e.g. for images)
+app.use(express.static("public"));
+
+// Cookie parser (can be used before routes)
+app.use(cookieParser());
+
+// 🧠 IMPORTANT:
+// Do NOT use express.json() or express.urlencoded() before file-upload routes
+// Multer needs access to raw request body for multipart/form-data
+
+// ✅ File-upload routes go first
+app.use("/api/v1/users", userRouter); // e.g., handles /register
+
+// ✅ Use JSON and urlencoded parsers AFTER file-upload routes
+app.use(express.json({ limit: "16kb" }));
+app.use(express.urlencoded({ extended: true, limit: "16kb" }));
+
+export { app };

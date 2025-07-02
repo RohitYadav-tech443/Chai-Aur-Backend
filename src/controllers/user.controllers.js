@@ -1,7 +1,7 @@
 import {asyncHandler} from '../utils/asyncHandler.js';
 import {ApiError} from "../utils/ApiError.js"
 import {User} from "../models/user.model.js"
-import {uploadOnCloudinary} from "../utils/cloudinary.js"
+import {uploadCloudinary} from "../utils/cloudinary.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
 
 const registerUser = asyncHandler(async(req, res) => {
@@ -22,7 +22,8 @@ const registerUser = asyncHandler(async(req, res) => {
     //  check karo ki response aaya hai ki nhi - null hai ya response aaya hai
 
     const {fullname,email,username,password}= req.body
-    console.log("email:",email);
+
+    // console.log("email:",email);
 
     // if(fullname === ""){
     //     throw new ApiError(400,"FullName is required")
@@ -37,9 +38,9 @@ const registerUser = asyncHandler(async(req, res) => {
         throw new ApiError(400,"All fields are compulsory and required")
     }
     
-   const existedUser= User.findOne({
+   const existedUser=await User.findOne({
         // advance methods for checking the presence of the email earlier in the database
-        $or: [{username},{email},]
+        $or: [{username},{email}]
     })
     if(existedUser) {
         throw new ApiError(409,"user with email and username already logedIn")
@@ -47,22 +48,33 @@ const registerUser = asyncHandler(async(req, res) => {
 
 
     // over here we are using the optional chaining for checking wether the req.files exist there or not
-    const avavtarLocalPath= req.files?.avatar[0]?.path;
-    const coverImageLocalPath=req.files?.coverImage[0]?.path;
 
-    if(!avavtarLocalPath){
+    let avatarLocalPath;
+    if(req.files && Array.isArray(req.files.avatar)
+     && req.files.avatar.length >0){
+        avatarLocalPath=req.files.avatar[0].path
+    }
+
+    let coverImageLocalPath;
+    if (req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0) {
+        coverImageLocalPath = req.files.coverImage[0].path
+    }
+
+    if(!avatarLocalPath){
         throw new ApiError(400,"Avatar file is required");
     }
 
-    const avatar=await uploadOnCloudinary(avavtarLocalPath)
-    const coverImage=await uploadOnCloudinary(coverImageLocalPath)
+    const avatar=await uploadCloudinary(avatarLocalPath)
+    const coverImage=await uploadCloudinary(coverImageLocalPath)
 
+    console.log("FILES RECEIVED:", req.files);
+    
     if(!avatar){
         throw new ApiError(400,"Avatar file is required")
     }
-    if(!coverImage){
-        throw new ApiError(400,"CoverImage is required")
-    }
+    // if(!coverImage){
+    //     throw new ApiError(400,"CoverImage is required")
+    // }
 
 
     const user=await User.create({
@@ -75,11 +87,11 @@ const registerUser = asyncHandler(async(req, res) => {
     })
 
     const createdUser=await User.findById(user._id).select(
-        "-password  -refreshToken"
+        "-password -refreshToken"
     )
     // above syntax is used to find the user by the id and select mein hamne jo pass kiya hai woh uss id ko delete kar deta hai
 
-    if(createdUser){
+    if(!createdUser){
         throw new ApiError(500,"Something went wrong while registering the user")
     }
 

@@ -1,18 +1,19 @@
-import multer from "multer";
+// utils/multer.js
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
 
-//  herer we are using the diskStorage version in comparison to the memorytype Storage
-// as diskstorage can store the last size of files while the memoryStorage can't deal with the large size of the files and vedios
-// cb -> callback 
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const uploadPath = path.join('public', 'temp');
+    fs.mkdirSync(uploadPath, { recursive: true });
+    cb(null, uploadPath);
+  },
+  filename: function (req, file, cb) {
+    const ext = path.extname(file.originalname);
+    const name = `${file.fieldname}-${Date.now()}${ext}`;
+    cb(null, name);
+  }
+});
 
-const storage =multer.diskStorage({
-    destination: function(req,file,cb){
-        cb(null,"./pubic/temp")
-    },
-    filename: function(req,file,cb){
-     cb(null,file.originalname)
-    }
-})
-
-export const upload =multer({
-    storage, 
-})
+export const upload = multer({ storage });

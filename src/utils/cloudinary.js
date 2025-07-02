@@ -10,7 +10,7 @@ import fs from 'fs'
         api_secret:process.env.CLOUDINARY_API_SECRET // Click 'View API Keys' above to copy your API secret
     });
 
-const uploadCloudinary =async (localFilePath) => {
+export const uploadCloudinary =async (localFilePath) => {
         try {
             if(!localFilePath) return null
             // upload the file on cloudinary
@@ -18,16 +18,18 @@ const uploadCloudinary =async (localFilePath) => {
                 resource_type:"auto"
             })
             // file has been uploaded successfully
-            console.log("file is uploaded on the cloudinary".response.url)
+            // console.log("file is uploaded on the cloudinary",response.url)
+            fs.unlinkSync(localFilePath)
             return response;
         } catch (error) {
             // there are files which are not uploaded on the seerver so we need to remove those malicius files from the pathway ...so we need the catch part to remove those errors
             fs.unlinkSync(localFilePath)
+            return null;
             // removes the locally saved tempororay file as the upload operation gets failed
         }
     }
 
-export default uploadCloudinary;
+
 
 
 
@@ -35,8 +37,8 @@ export default uploadCloudinary;
 
 
 // now just we need to upload the random photo on the cloudinary
-cloudinary.v2.uploader.upload("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTGyShi9auREuNfXcsYfGLdW832KoTZMAZxajkY4HCvMychv-1sjos2oPk&s",
-{
-    public_id:"Olympic Flag"
-},
-function(error,result) {console.log(result) ;});
+// cloudinary.v2.uploader.upload("https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTGyShi9auREuNfXcsYfGLdW832KoTZMAZxajkY4HCvMychv-1sjos2oPk&s",
+// {
+//     public_id:"Olympic Flag"
+// },
+// function(error,result) {console.log(result) ;}); 
