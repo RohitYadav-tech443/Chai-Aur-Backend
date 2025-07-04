@@ -275,7 +275,11 @@ const changeCurrentPassword = asyncHandler(async(req,res) => {
 
 const getCurrentUser=asyncHandler(async(req,res) => {
     return res.status(200)
-    .json(200,req.user,"Current user fetched Successfully")
+    .json(new ApiResponse(
+        200,
+        req.user,
+        "Current user fetched Successfully"
+    ))
 })
 
 const updateAccountDetails=asyncHandler(async(req,res) => {
@@ -285,7 +289,7 @@ const updateAccountDetails=asyncHandler(async(req,res) => {
         throw new ApiError(401,"All fields are required")
     }
 
-    const user=User.findByIdAndUpdate(
+    const user=await User.findByIdAndUpdate(
         req.user?._id,
         {
             // here we use the mogodb operators
@@ -362,6 +366,84 @@ const updateUserCoverImage= asyncHandler(async(req,res) => {
     )
 })
 
+// jab ham aggregate pipelines use karte hain toh jo values aati hain woh ek array ke form mein aati hai
+const getUserChannelProfile=asyncHandler(async(req,res) => {
+     const {username} =req.params
+
+     if(!username?.trim()){
+        throw new ApiError(400,"username is missing")
+     }
+
+     const channel= await User.aggregate([
+        {
+            $match:{
+                username: username?.toLowerCase()
+            }
+        },
+        // below code blocks which are written are the aggregation pipelines
+        {
+            $lookup:{
+                from:"subscriptions",
+                localField:"_id",
+                foreignField:"channel",
+                as:"subscribers",
+            },
+        },
+        {
+            $lookup:{
+                from:"subscriptions",
+                localField:"_id",
+                foreignField:"subscriber",
+                as:"subscribedTo",
+            }  
+        },
+        // size -> is used to tell us the size of the mentioned filed aas how much they contains
+        // cond-> it is used to set up the condition usinf if then or else 
+        // in -> iska mtlb hia check karna oh present hai ya nhi hai
+        {
+            $addFields:{
+                subscribersCount:{
+                    $size:"subscribers",
+                },
+                channelsSubscribedToCount:{
+                    $size:subscribedTo
+                },
+                isSubscribed:{
+                    $cond:{
+                        if:{$in:[req.user?._id,"$subscribers.subscriber"]},
+                        then:true,
+                        else:false,
+                    }
+                }
+            }
+        },
+        {
+            $project:{
+                // fullname 1 ye batata hai ki woh value ON hao
+                fullname:1,
+                username:1,
+                subscribersCount:1,
+                channelsSubscribedToCount:1,
+                avatar:1,
+                coverImage:1,
+                email:1,
+            }
+        }
+     ])
+
+     if(!channel?.length){
+        throw new ApiError(404,"channel dpes not exist")
+     }
+
+     return res.status(200).json(
+        new ApiResponse(
+            200,
+            channel[0],
+            "User channel fetched successfully"
+        )
+     )
+})
+ 
 export {registerUser,
         loginUser,
         logoutUser,
@@ -371,5 +453,6 @@ export {registerUser,
         updateAccountDetails,
         updateUserAvatar,
         updateUserCoverImage,
+        getUserChannelProfile,
 }
 // now we are going to create the routes
