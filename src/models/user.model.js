@@ -43,12 +43,12 @@ const userSchema = new Schema(
             ref:"Vedio",
         }
         ],
-        passwordField:{
+        password:{
             type:String,
             required:[true,'Password is required']
         },
         refreshToken:{
-            type:String,            
+            type:String,           
         }
     },{
         timestamps:true,

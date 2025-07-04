@@ -24,7 +24,7 @@ app.use(cookieParser());
 // Multer needs access to raw request body for multipart/form-data
 
 // ✅ File-upload routes go first
-app.use("/api/v1/users", userRouter); // e.g., handles /register
+app.use("/api/user", userRouter); // e.g., handles /register
 
 // ✅ Use JSON and urlencoded parsers AFTER file-upload routes
 app.use(express.json({ limit: "16kb" }));
