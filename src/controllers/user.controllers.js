@@ -5,6 +5,8 @@ import {uploadCloudinary} from "../utils/cloudinary.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
 import path from "path"
 import jwt from "jsonwebtoken"
+import mongoose from 'mongoose';
+import { pipeline } from 'stream';
 
 const registerUser = asyncHandler(async(req, res) => {
     // res.status(200).json({
@@ -443,6 +445,62 @@ const getUserChannelProfile=asyncHandler(async(req,res) => {
         )
      )
 })
+//  below in the pipeline aggregations we use the nested pipelines concept such that value from one part can be passed to other easily hand to hand
+const getWatchHistory=asyncHandler(async(req,res) => {
+    const user = await user.aggregate([
+        {
+            $match:{
+                _id: new mongoose.Types.ObjectId(String(req.user._id))
+                
+            }
+        },
+        {
+            $lookup:{
+                from:"Vedio",
+                localField:"watchHistory",
+                foreignField:"_id",
+                as:"watchHistory",
+                pipeline:[
+                    {
+                        $lookup:{
+                            from:"users",
+                            localField:"owner",
+                            foreignField:"_id",
+                            as:"owner",
+                            pipeline:[
+                                {
+                                    $project:{
+                                        fullname:1,
+                                        user:1,
+                                        avatar:1,
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        $addFields:{
+                            owner:{
+                                $first:"$owner"
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    ])
+
+    return user
+    .status(200)
+    .json(
+        new ApiResponse(
+            200,
+            user[0].watchHistory,
+            "watch history fetched Successfully"
+        )
+    )
+    
+})
  
 export {registerUser,
         loginUser,
@@ -454,5 +512,6 @@ export {registerUser,
         updateUserAvatar,
         updateUserCoverImage,
         getUserChannelProfile,
+        getWatchHistory,
 }
 // now we are going to create the routes
