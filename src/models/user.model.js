@@ -40,7 +40,7 @@ const userSchema = new Schema(
         watchHistory:[
             {
             type:Schema.Types.ObjectId,
-            ref:"Vedio",
+            ref:"Video",
         }
         ],
         password:{
@@ -65,12 +65,12 @@ userSchema.pre("save",async function (next) {
     next()
 })
 
-userSchema.methods.isPasswordCprrect = async function (password){
+userSchema.methods.isPasswordCorrect = async function (password){
    return await bcrypt.compare(password,this.password)
 }
 
 userSchema.methods.generateAccessToken=function(){
-    jwt.sign(
+    return jwt.sign(
         {
             _id:this._id,
             email:this.email,
@@ -83,6 +83,12 @@ userSchema.methods.generateAccessToken=function(){
         }
     )
 }
+// below the use of the jwt.sign is used to maintain the integrity of the access tokens and also check whether if the data is tampered or not 
+// Creates a JWT token from a payload (data).
+
+// Digitally signs the token using a secret or private key.
+
+// Returns the signed token, which can be securely sent to the client.
 userSchema.methods.generateRefreshToken=function(){
      return jwt.sign(
         {

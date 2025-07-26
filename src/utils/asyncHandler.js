@@ -2,7 +2,10 @@
 
 const asyncHandler = (requestHandler) =>{
     return (req,res,next) => {
-        Promise.resolve(requestHandler(req,res,next)).catch((err) => next(err))
+        Promise
+        .resolve(requestHandler(req,res,next))
+        .catch((err) => next(err))
+        // above line se ham ek error ko catch karne ke baad naye error ko check karne ke liye next(err) pass on kar dete hain
     }
 }
 

@@ -44,4 +44,4 @@ const vedioSchema= new Schema(
 vedioSchema.plugin(mongooseAggregatePaginate)
 // above is used to link the vedioSchema type with the mongooseAggregatePaginate
 
-export const Vedio=mongoose.model("Vedio",vedioSchema)
+export const Video=mongoose.model("Video",vedioSchema)

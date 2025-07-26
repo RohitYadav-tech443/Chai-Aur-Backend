@@ -2,12 +2,13 @@
 import dotenv from "dotenv"
 import connectDB from './db/index.js';
 import {app} from './app.js'
+
 dotenv.config({
     path: './.env'
 })
 
 
-
+// app.listen ya toh mention port pr data ki request send karega na toh 8000 portal par data request send kar dega
 
 connectDB().then( () =>{
     app.listen(process.env.PORT || 8000,() =>{

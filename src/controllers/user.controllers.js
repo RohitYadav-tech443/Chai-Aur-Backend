@@ -17,7 +17,7 @@ const registerUser = asyncHandler(async(req, res) => {
 
     // steps for procesing the data
     // get the user details from the frontend
-    //  validation chech karo jo data use send karta hai 
+    //  validation chech karo jo data usne send karta hai 
     // check if the user exists
     // check for the images, check for the avatar
     // fir data ko backend mien push kar do
@@ -155,11 +155,12 @@ const loginUser = asyncHandler(async(req,res) => {
     const loggedInUser=User.findById(user._id).select(
         "-password -refreshToken"
     )
-
+   
     const options ={
         httpOnly:true,
         secure:true,
     }
+    // Prevents client-side JavaScript from accessing the cookie. -> above line
 
     return res
     .status(200)
@@ -234,12 +235,12 @@ const refreshAccessToken = asyncHandler(async( req,res) =>{
     
         return res
         .status(200)
-        .cookie("accessToekn",accessToken,options)
+        .cookie("accessToekn",newaccessToken,options)
         .cookie("refreshToekn",newrefreshToken,options)
         .json(
             new ApiResponse(
                 200,
-                {accessToken,refreshToken:newrefreshToken},
+                {accessToken:newaccessToken,refreshToken:newrefreshToken},
                 "Access Token refreshed"
             )
         )
@@ -291,6 +292,7 @@ const updateAccountDetails=asyncHandler(async(req,res) => {
         throw new ApiError(401,"All fields are required")
     }
 
+    // below we are just updating the emial and the fullname of the user based upon the id send by the user
     const user=await User.findByIdAndUpdate(
         req.user?._id,
         {
@@ -301,6 +303,7 @@ const updateAccountDetails=asyncHandler(async(req,res) => {
 
             }
         },
+        // below true is used to mark up the things that given params are updated successfully and it doesn't return us the old data 
         {new :true}
     ).select("-password")
 
@@ -382,7 +385,7 @@ const getUserChannelProfile=asyncHandler(async(req,res) => {
                 username: username?.toLowerCase()
             }
         },
-        // below code blocks which are written are the aggregation pipelines
+        // below code blocks are the aggregation pipelines
         {
             $lookup:{
                 from:"subscriptions",
@@ -400,8 +403,8 @@ const getUserChannelProfile=asyncHandler(async(req,res) => {
             }  
         },
         // size -> is used to tell us the size of the mentioned filed aas how much they contains
-        // cond-> it is used to set up the condition usinf if then or else 
-        // in -> iska mtlb hia check karna oh present hai ya nhi hai
+        // cond-> it is used to set up the condition using if then or else 
+        // in -> iska mtlb hia check karna woh present hai ya nhi hai
         {
             $addFields:{
                 subscribersCount:{
@@ -412,7 +415,9 @@ const getUserChannelProfile=asyncHandler(async(req,res) => {
                 },
                 isSubscribed:{
                     $cond:{
-                        if:{$in:[req.user?._id,"$subscribers.subscriber"]},
+                        if:{
+                            $in:[req.user?._id,"$subscribers.subscriber"]
+                        },
                         then:true,
                         else:false,
                     }

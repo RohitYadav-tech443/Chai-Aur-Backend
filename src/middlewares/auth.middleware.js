@@ -17,7 +17,8 @@ export const verifyJWT = asyncHandler(async(req,res,next)=> {
         if(!token){
             throw new ApiError(401,"Unauthorised Error")
         }
-    
+
+        // ye wala jo hai woh hame ek aisa token dega jiski help se ham User ke ander se details extract kar sake aur select ke ander jo params mentioned hote hain woh unko delete kar deta hai
         const decodedTokenInfo= jwt.verify(token,process.env.ACCESS_TOKEN_SECRET)
     
         const user=await User.findById(decodedTokenInfo._id).select(

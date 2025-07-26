@@ -20,6 +20,7 @@ export const uploadCloudinary =async (localFilePath) => {
             // file has been uploaded successfully
             // console.log("file is uploaded on the cloudinary",response.url)
             fs.unlinkSync(localFilePath)
+            // above mentione line ki madad se ham jabhi koi data ek baar agr cludinary ke db mein send kar dete hain toh extra data traffic ko hatane ke liye usko hata deta hain
             return response;
         } catch (error) {
             // there are files which are not uploaded on the seerver so we need to remove those malicius files from the pathway ...so we need the catch part to remove those errors
