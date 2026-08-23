@@ -83,7 +83,7 @@ const uploadPDF = asyncHandler(async (req, res) => {
 
         // Send PDF to Python/FastAPI chatbot
         const response = await axios.post(
-            "http://127.0.0.1:8001/upload-pdf",
+            "https://langgraph-chatbot-3-ybs6.onrender.com/upload-pdf",
             formData
         );
 
