@@ -1,3 +1,4 @@
+console.log("USER CONTROLLER LOADED");
 import {asyncHandler} from '../utils/asyncHandler.js';
 import {ApiError} from "../utils/ApiError.js"
 import {User} from "../models/user.model.js"
@@ -25,7 +26,7 @@ const registerUser = asyncHandler(async(req, res) => {
     // remove the password from the response
     //  check karo ki response aaya hai ki nhi - null hai ya response aaya hai
 
-    const {fullname,email,username,password}= req.body
+    const {fullname,email,username,password}= req.body || {}
 
     // console.log("email:",email);
 
@@ -42,12 +43,17 @@ const registerUser = asyncHandler(async(req, res) => {
         throw new ApiError(400,"All fields are compulsory and required")
     }
     
+    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedUsername = username.trim().toLowerCase();
+
    const existedUser=await User.findOne({
-        // advance methods for checking the presence of the email earlier in the database
-        $or: [{username},{email}]
+        $or: [{username: normalizedUsername},{email: normalizedEmail}]
     })
     if(existedUser) {
-        throw new ApiError(409,"user with email and username already logedIn")
+        if (existedUser.email === normalizedEmail) {
+            throw new ApiError(409, "An account with this email already exists. Please login instead.")
+        }
+        throw new ApiError(409, "This username is already taken. Please choose another username.")
     }
 
 
@@ -69,7 +75,11 @@ const registerUser = asyncHandler(async(req, res) => {
     }
 
     const avatar=await uploadCloudinary(path.resolve(avatarLocalPath))
-    const coverImage=await uploadCloudinary(coverImageLocalPath)
+    let coverImage = null;
+
+    if (coverImageLocalPath) {
+        coverImage = await uploadCloudinary(path.resolve(coverImageLocalPath));
+    }
 
     console.log("FILES RECEIVED:", req.files);
     
@@ -85,9 +95,9 @@ const registerUser = asyncHandler(async(req, res) => {
         fullname,
         avatar: avatar.url,
         coverImage:coverImage?.url || "",
-        email,
+        email: normalizedEmail,
         password,
-        username: username.toLowerCase()
+        username: normalizedUsername
     })
 
     const createdUser=await User.findById(user._id).select(
@@ -107,6 +117,9 @@ const registerUser = asyncHandler(async(req, res) => {
 const generateAccessandRefreshTokens= async (userId) => {
     try {
         const user =await User.findById(userId)
+        if (!user) {
+            throw new ApiError(404, "User not found");
+        }
         const accessToken=user.generateAccessToken()
         const refreshToken=user.generateRefreshToken()
 
@@ -126,11 +139,10 @@ const loginUser = asyncHandler(async(req,res) => {
     // find the user
     // password check
     // access and refresh token
-    // send the  cookies and response for successfully logIn
+    // send the  cookies and response for successfully logIn    
+    const {email,username,password} =req.body || {}
 
-    const {email,username,password} =req.body
-
-    if(!username && !email){
+    if(!username && !email || !password){
         throw new ApiError(400,"Username or email is required")
     }
 
@@ -152,13 +164,13 @@ const loginUser = asyncHandler(async(req,res) => {
 
     const {accessToken,refreshToken}= await generateAccessandRefreshTokens(user._id)
 
-    const loggedInUser=User.findById(user._id).select(
+    const loggedInUser=await User.findById(user._id).select(
         "-password -refreshToken"
     )
    
     const options ={
         httpOnly:true,
-        secure:true,
+        secure:false,
     }
     // Prevents client-side JavaScript from accessing the cookie. -> above line
 
@@ -171,9 +183,10 @@ const loginUser = asyncHandler(async(req,res) => {
             200,
             {
                 // when user wants to save the given below three parameter from his side
-                user:loggedInUser,accessToken,refreshToken
+                user:loggedInUser,
+                accessToken
             },
-            "User Looged In SuccessFully"
+            "User Logged In SuccessFully"
         )
         
     )
@@ -193,7 +206,7 @@ const logoutUser= asyncHandler(async(req,res) =>{
 
     const options ={
         httpOnly:true,
-        secure:true,
+        secure:false,
     }
 
     return res
@@ -213,7 +226,7 @@ const refreshAccessToken = asyncHandler(async( req,res) =>{
     try {
         const decodedToken=jwt.verify(
             incomingRefreshToken,
-            process.env.ACCESS_TOKEN_SECRET
+            process.env.REFRESH_TOKEN_SECRET
         )
     
         const user =await User.findById(decodedToken?._id)
@@ -228,19 +241,20 @@ const refreshAccessToken = asyncHandler(async( req,res) =>{
     
         const options ={
             httpOnly:true,
-            secure:true,
+            secure:false,
         }
     
-        const {newaccessToken,newrefreshToken}=await generateAccessandRefreshTokens(user._id)
+        const {accessToken,refreshToken}=await generateAccessandRefreshTokens(user._id)
     
         return res
         .status(200)
-        .cookie("accessToekn",newaccessToken,options)
-        .cookie("refreshToekn",newrefreshToken,options)
+        .cookie("accessToekn",accessToken,options)
+        .cookie("refreshToekn",refreshToken,options)
         .json(
             new ApiResponse(
                 200,
-                {accessToken:newaccessToken,refreshToken:newrefreshToken},
+                {accessToken,
+                refreshToken},
                 "Access Token refreshed"
             )
         )
@@ -250,17 +264,24 @@ const refreshAccessToken = asyncHandler(async( req,res) =>{
 })
 
 const changeCurrentPassword = asyncHandler(async(req,res) => {
-    const {oldPassword,newPassword} = req.body
+    const {oldPassword,newPassword} = req.body || {}
 
     // if(!(newPassword === confPassword)){
 
     // }
 
+    if (!oldPassword || !newPassword) {
+    throw new ApiError(
+        400,
+        "Old password and new password are required"
+        );
+    }
+
    const user= await User.findById(req.user?._id)
    const isPasswordCorrect=await user.isPasswordCorrect(oldPassword)
 
    if(!isPasswordCorrect){
-    throw new ApiError(400,"Invalid aold password")
+    throw new ApiError(400,"Invalid old password")
    }
 
    user.password=newPassword
@@ -286,10 +307,24 @@ const getCurrentUser=asyncHandler(async(req,res) => {
 })
 
 const updateAccountDetails=asyncHandler(async(req,res) => {
-    const {fullname,email} = req.body
+    const {fullname,email} = req.body || {}
 
     if(!fullname || !email){
         throw new ApiError(401,"All fields are required")
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const existingUser = await User.findOne({
+        email: normalizedEmail,
+        _id: { $ne: req.user._id } // Ignore the current logged-in user
+    });
+
+    if (existingUser) {
+        throw new ApiError(
+            409,
+            "Email already exists"
+        );
     }
 
     // below we are just updating the emial and the fullname of the user based upon the id send by the user
@@ -320,7 +355,7 @@ const updateUserAvatar= asyncHandler(async(req,res) => {
 
     const avatar=await uploadCloudinary(avatarLocalPath)
 
-    if(!avatar.url){
+    if(!avatar || !avatar.url){
         throw new ApiError(400,"Error while uploading on Avatar")
     }
 
@@ -350,7 +385,7 @@ const updateUserCoverImage= asyncHandler(async(req,res) => {
 
     const coverImage=await uploadCloudinary(coverImageLocalPath)
 
-    if(!coverImage.url){
+    if(!coverImage || !coverImage.url){
         throw new ApiError(400,"Error while uploading on CoverImage")
     }
 
@@ -363,6 +398,13 @@ const updateUserCoverImage= asyncHandler(async(req,res) => {
         },
         {new :true}
     ).select("-password")
+
+    if(!user){
+        throw new ApiError(
+            404,
+            "User not found"
+        )
+    }
 
     return res
     .status(200)
@@ -382,7 +424,7 @@ const getUserChannelProfile=asyncHandler(async(req,res) => {
      const channel= await User.aggregate([
         {
             $match:{
-                username: username?.toLowerCase()
+                username: username.trim().toLowerCase()
             }
         },
         // below code blocks are the aggregation pipelines
@@ -408,15 +450,15 @@ const getUserChannelProfile=asyncHandler(async(req,res) => {
         {
             $addFields:{
                 subscribersCount:{
-                    $size:"subscribers",
+                    $size:"$subscribers",
                 },
                 channelsSubscribedToCount:{
-                    $size:subscribedTo
+                    $size:"$subscribedTo"
                 },
                 isSubscribed:{
                     $cond:{
                         if:{
-                            $in:[req.user?._id,"$subscribers.subscriber"]
+                            $in:[req.user?._id || null,"$subscribers.subscriber"]
                         },
                         then:true,
                         else:false,
@@ -433,13 +475,13 @@ const getUserChannelProfile=asyncHandler(async(req,res) => {
                 channelsSubscribedToCount:1,
                 avatar:1,
                 coverImage:1,
-                email:1,
+                email:0,
             }
         }
      ])
 
      if(!channel?.length){
-        throw new ApiError(404,"channel dpes not exist")
+        throw new ApiError(404,"channel does not exist")
      }
 
      return res.status(200).json(
@@ -452,16 +494,16 @@ const getUserChannelProfile=asyncHandler(async(req,res) => {
 })
 //  below in the pipeline aggregations we use the nested pipelines concept such that value from one part can be passed to other easily hand to hand
 const getWatchHistory=asyncHandler(async(req,res) => {
-    const user = await user.aggregate([
+    const user = await User.aggregate([
         {
             $match:{
-                _id: new mongoose.Types.ObjectId(String(req.user._id))
+                _id: new mongoose.Types.ObjectId(String(req.user?._id))
                 
             }
         },
         {
             $lookup:{
-                from:"Vedio",
+                from:"videos",
                 localField:"watchHistory",
                 foreignField:"_id",
                 as:"watchHistory",
@@ -476,7 +518,7 @@ const getWatchHistory=asyncHandler(async(req,res) => {
                                 {
                                     $project:{
                                         fullname:1,
-                                        user:1,
+                                        username:1,
                                         avatar:1,
                                     }
                                 }
@@ -495,7 +537,14 @@ const getWatchHistory=asyncHandler(async(req,res) => {
         }
     ])
 
-    return user
+    if (!user.length) {
+    throw new ApiError(
+        404,
+        "User not found"
+        );
+    }
+
+    return res
     .status(200)
     .json(
         new ApiResponse(

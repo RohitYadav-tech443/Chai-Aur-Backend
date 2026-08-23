@@ -61,20 +61,28 @@ const getAllVideos = asyncHandler(async(req,res) =>{
 })
 
 const publishAVideo = asyncHandler(async(req,res) => {
+    console.log("====== publishAVideo called ======");
+
+    console.log("BODY:", req.body);
+    console.log("FILES:", req.files);
+
     const {title,description} =req.body
 
     if(!title || !description){
         throw new ApiError(400,"Title and description are required");
     }
     
-    if(!req.files || !req.files.video){
+    const videoFile = req.files?.videoFile?.[0];
+
+    if(!videoFile){
         throw new ApiError(400,"Vedio file is required");
     }
 
-    const videoFile=req.files.video;
+    const uploadedVideo = await uploadCloudinary(videoFile.path,"video");
 
-    const uploadedVideo = await uploadCloudinary(videoFile.tempFilePath,"video");
-
+    console.log("Cloudinary Response:");
+    console.dir(uploadedVideo, { depth: null });
+    
     if(!uploadedVideo?.secure_url){
         throw new ApiError(500,"failed to upload video to Cloudinary");
     }
@@ -83,10 +91,12 @@ const publishAVideo = asyncHandler(async(req,res) => {
     const newVideo=await Video.create({
         title,
         description,
-        videoFile:{
-            url:uploadedVideo.secure_url,
-            public_id:uploadedVideo.public_id
-        },
+        video: uploadedVideo.secure_url,
+        // videoFile:{
+        //     url:uploadedVideo.secure_url,
+        //     public_id:uploadedVideo.public_id
+        // },
+        duration: uploadedVideo.duration,
         owner: req.user._id,
     });
 
@@ -145,11 +155,9 @@ const updateVideo = asyncHandler(async(req,res) =>{
     video.title=title;
     video.description=description;
 
-    if(req.files && req.files.video){
-        const videoFile=req.files.video;
-        // tempFilePath → temporary path where file is stored before uploading.
-        // "video" → tells Cloudinary the resource type is video.
-        const uploaded=await uploadCloudinary(videoFile.tempFilePath,"video");
+    if(req.files?.videoFile?.[0]){
+        const videoFile = req.files.videoFile[0];
+        const uploaded = await uploadCloudinary(videoFile.path,"video");
         if(!uploaded?.secure_url){
             throw new ApiError(500,"Failled to upload the video on the cloudinary");
         }

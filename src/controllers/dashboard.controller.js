@@ -8,7 +8,7 @@ import {asyncHandler} from "../utils/asyncHandler.js"
 
 const getChannelStats = asyncHandler(async (req, res) => {
     // TODO: Get the channel stats like total video views, total subscribers, total videos, total likes etc.
-    const { channelId }= req.params;
+    const channelId = req.params.channelId || req.user?._id;
 
     if(!channelId || !mongoose.Types.ObjectId.isValid(channelId)){
         throw new ApiError(400,"Invalid channelId");
@@ -41,15 +41,17 @@ const getChannelStats = asyncHandler(async (req, res) => {
 
 const getChannelVideos = asyncHandler(async (req, res) => {
     // TODO: Get all the videos uploaded by the channel
-    const {channelId} =req.params;
+    const channelId = req.params.channelId || req.user?._id;
 
-    if(!channelId || !mongoose.Types.ObjectId(channelId)){
+    if(!channelId || !mongoose.Types.ObjectId.isValid(channelId)){
         throw new ApiError(400,"Invalid channelID")
     }
 
     const videos= await Video.find({
         owner: channelId
-    }).sort({createdAt: -1})
+    })
+    .populate("owner","fullname username avatar")
+    .sort({createdAt: -1})
 
     return res.status(200).json(
         new ApiResponse(

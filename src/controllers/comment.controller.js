@@ -1,9 +1,9 @@
 import mongoose from 'mongoose'
-import {Comment} from '../models/comment.models.js'
+import {Comment} from '../models/comment.model.js'
 import { ApiError } from '../utils/ApiError.js'
 import { ApiResponse } from '../utils/ApiResponse.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
-import {Video} from "../models/vedio.model.js"
+import {Video} from "../models/video.model.js"
 
 const getVideoComments = asyncHandler(async(req,res) =>{
     const {videoId} =req.params
@@ -17,7 +17,7 @@ const getVideoComments = asyncHandler(async(req,res) =>{
                                  .sort({createdAt: -1})
                                  .skip((page -1)* limit)
                                  .limit(parseInt(limit))
-                                 .populate("user","username avatar")
+                                 .populate("owner","username avatar")
                                  // lat one popoulate is the optional whether you want to use it or not
 
     const totalComments= await Comment.countDocuments({video: videoId})
@@ -57,12 +57,12 @@ const addComment=asyncHandler(async(req,res) => {
 
      const newComment= await Comment.create({
         video:videoId,
-        user:req.user._id,
+        owner:req.user._id,
         comment:comment.trim()
      })
     //  this.comment=comment 
      
-     return req.status(200).json(
+     return res.status(200).json(
         new ApiResponse(
             200,
             newComment,
@@ -73,7 +73,7 @@ const addComment=asyncHandler(async(req,res) => {
 
 const updateComment = asyncHandler(async (req, res) => {
     const {commentId} =req.params
-    // const {comment} =req.body
+    const {comment} =req.body
 
     if(!commentId || !mongoose.Types.ObjectId.isValid(commentId)){
         throw new ApiError(404,"Invalid videoId");
@@ -85,14 +85,14 @@ const updateComment = asyncHandler(async (req, res) => {
         throw new ApiError(404,"existingComment not found");
     }
 
-    // if(!comment || comment.trim() === ""){
-    //     throw new ApiError(400,"Comment content cannot be empty")
-    // }
+    if(!comment || comment.trim() === ""){
+        throw new ApiError(400,"Comment content cannot be empty")
+    }
 
     existingComment.comment=comment.trim();
     await existingComment.save({validateBeforeSave:false})
 
-    return req.status(200).json(
+    return res.status(200).json(
         new ApiResponse(
             200,
             existingComment,
@@ -103,14 +103,9 @@ const updateComment = asyncHandler(async (req, res) => {
 
 const deleteComment = asyncHandler(async (req, res) => {
     const {commentId}= req.params
-    const {comment} =req.body
 
     if(!commentId || !mongoose.Types.ObjectId.isValid(commentId)){
         throw new ApiError(404,"Invalid Comment id")
-    }
-
-    if(!comment || comment.trim() === ""){
-        throw new ApiError("Comment cannot be empty");
     }
 
     const deletedComment=await Comment.findByIdAndDelete(commentId)
@@ -118,9 +113,6 @@ const deleteComment = asyncHandler(async (req, res) => {
     if(!deletedComment){
         throw new ApiError(404,"Comment not found to delete")
     }
-
-    // deletedComment.comment="";
-    await deletedComment.save({validateBeforeSave:false})
 
     return res.status(200).json(
         new ApiResponse(

@@ -17,19 +17,26 @@ router
     .route("/")
     .get(getAllVideos)
     .post(
-        upload.fields([
-            {
-                name: "videoFile",
-                maxCount: 1,
-            },
-            {
-                name: "thumbnail",
-                maxCount: 1,
-            },
-            
-        ]),
-        publishAVideo
-    );
+    (req, res, next) => {
+        console.log("STEP 1: Route reached");
+        next();
+    },
+    upload.fields([
+        {
+            name: "videoFile",
+            maxCount: 1,
+        },
+        {
+            name: "thumbnail",
+            maxCount: 1,
+        },
+    ]),
+    (req, res, next) => {
+        console.log("STEP 2: Multer finished");
+        next();
+    },
+    publishAVideo
+);
 
 router
     .route("/:videoId")

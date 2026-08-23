@@ -31,6 +31,15 @@ router.route("/register").post(
 )
 
 router.route("/login").post(loginUser)
+// router.route("/login").post((req, res) => {
+//     console.log("LOGIN ROUTE");
+//     console.log(req.body);
+
+//     return res.json({
+//         success: true,
+//         body: req.body,
+//     });
+// });
 
 // secured Routes
 router.route("/logout").post(verifyJWT,logoutUser)

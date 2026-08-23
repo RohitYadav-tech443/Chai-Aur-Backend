@@ -12,6 +12,14 @@ app.use(cors({
     credentials: true,
 }));
 
+// ✅ Use JSON and urlencoded parsers AFTER file-upload routes
+app.use(express.json({ limit: "16kb" }));
+app.use((req, res, next) => {
+    console.log("APP MIDDLEWARE BODY:", req.body);
+    next();
+});
+app.use(express.urlencoded({ extended: true, limit: "16kb" }));
+
 // Serve static files (e.g. for images)
 app.use(express.static("public"));
 
@@ -34,6 +42,9 @@ import commentRouter from './routes/comment.route.js'
 import likeRouter from './routes/like.route.js'
 import playlistRouter from './routes/playlist.route.js'
 import dashboardRouter from './routes/dashboard.route.js'
+import { errorHandler } from './middlewares/error.middleware.js'
+import aiRouter from './routes/ai.route.js'
+
 
 
 // ✅ File-upload routes go first
@@ -46,11 +57,9 @@ app.use("/api/v1/comments", commentRouter)
 app.use("/api/v1/likes", likeRouter)
 app.use("/api/v1/playlist", playlistRouter)
 app.use("/api/v1/dashboard", dashboardRouter) // e.g., handles /register
+app.use("/api/v1/ai", aiRouter) // e.g., handles /register
 
-
-// ✅ Use JSON and urlencoded parsers AFTER file-upload routes
-app.use(express.json({ limit: "16kb" }));
-app.use(express.urlencoded({ extended: true, limit: "16kb" }));
+app.use(errorHandler);
 
 // http://localhost:8000/api/v1/users/register
 
