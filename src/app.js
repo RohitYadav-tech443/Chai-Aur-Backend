@@ -1,3 +1,9 @@
+import dotenv from "dotenv";
+
+dotenv.config({
+    path: "./.env"
+});
+
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
@@ -7,8 +13,9 @@ const app = express();
 
 // CORS middleware
 // cors middleware is used to gramt the access request to the 3rd party http request to access the data from external third party server
+console.log("CORS ORIGIN:", process.env.CORS_ORIGIN);
 app.use(cors({
-    origin: process.env.CORS_ORIGIN,
+    origin: process.env.CORS_ORIGIN || "http://localhost:5173",
     credentials: true,
 }));
 

@@ -10,9 +10,20 @@ const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
-    const stored = localStorage.getItem("user");
-    return stored ? JSON.parse(stored) : null;
-  });
+  const stored = localStorage.getItem("user");
+
+  if (!stored || stored === "undefined") {
+    return null;
+  }
+
+  try {
+    return JSON.parse(stored);
+  } catch (error) {
+    console.error("Invalid user data in localStorage:", error);
+    localStorage.removeItem("user");
+    return null;
+  }
+});
   const [loading, setLoading] = useState(true);
 
   const persistAuth = (authData) => {
